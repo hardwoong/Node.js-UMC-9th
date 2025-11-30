@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId        BigInt             @id @default(autoincrement()) @map("user_id")
+  name          String             @db.VarChar(50)
+  password      String             @db.VarChar(100)
+  gender        users_gender
+  birth         DateTime?          @db.Date
+  address       String?            @db.VarChar(255)
+  socialId      String?            @map("social_id") @db.VarChar(255)
+  socialType    users_social_type? @map("social_type")
+  userPoint     BigInt?            @default(0) @map("user_point")
+  userStatus    users_user_status  @default(ACTIVE) @map("user_status")
+  userType      users_user_type?   @map("user_type")
+  email         String?            @unique @db.VarChar(255)
+  phone         String?            @db.VarChar(100)
+  isVerified    Boolean?           @default(false) @map("is_verified")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt     DateTime           @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  agreements    Agreement?
+  inquiries     Inquiry[]
+  notifications Notification[]
+  reviews       Review[]
+  userMissions  UserMission[]
+  usersPrefer   UsersPrefer[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([phone], map: "idx_users_phone")
+  @@index([socialId], map: "idx_users_social_id")
+  @@map("users")
+}
+
+model Agreement {
+  agreementId            BigInt                 @id @default(autoincrement()) @map("agreement_id")
+  userId                 BigInt                 @unique(map: "user_id") @map("user_id")
+  isServiceAgreed        Boolean                @default(false) @map("is_service_agreed")
+  isPersonalAgreed       Boolean                @default(false) @map("is_personal_agreed")
+  isLocationAgreed       Boolean                @default(false) @map("is_location_agreed")
+  isAlarmAgreed          Boolean                @default(false) @map("is_alarm_agreed")
+  isFourteenAgreed       Boolean                @default(false) @map("is_fourteen_agreed")
+  createdAt              DateTime               @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt              DateTime               @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  user                   User                   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "agreements_ibfk_1")
+  notificationAgreements NotificationAgreement?
+
+  @@map("agreements")
+}
+
+model PreferCategory {
+  categoryId  BigInt                 @id @default(autoincrement()) @map("category_id")
+  name        prefer_categories_name
+  createdAt   DateTime               @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt   DateTime               @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  usersPrefer UsersPrefer[]
+
+  @@map("prefer_categories")
+}
+
+model UsersPrefer {
+  userId     BigInt         @map("user_id")
+  categoryId BigInt         @map("category_id")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime       @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  user       User           @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "users_prefer_ibfk_1")
+  category   PreferCategory @relation(fields: [categoryId], references: [categoryId], onDelete: Cascade, onUpdate: NoAction, map: "users_prefer_ibfk_2")
+
+  @@id([userId, categoryId])
+  @@index([categoryId], map: "category_id")
+  @@map("users_prefer")
+}
+
+model Store {
+  storeId      BigInt            @id @default(autoincrement()) @map("store_id")
+  storeName    String            @map("store_name") @db.VarChar(100)
+  storeAddress String            @map("store_address") @db.VarChar(255)
+  storeType    stores_store_type @map("store_type")
+  storeScore   Decimal?          @map("store_score") @db.Decimal(2, 1)
+  createdAt    DateTime          @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime          @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  missions     Mission[]
+  reviews      Review[]
+  storeImgs    StoreImg[]
+  userMissions UserMission[]
+
+  @@index([storeType], map: "idx_stores_type")
+  @@map("stores")
+}
+
+model StoreImg {
+  storeImgId BigInt   @id @default(autoincrement()) @map("store_img_id")
+  storeId    BigInt   @map("store_id")
+  storeImg   String   @map("store_img") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  store      Store    @relation(fields: [storeId], references: [storeId], onDelete: Cascade, onUpdate: NoAction, map: "store_imgs_ibfk_1")
+
+  @@index([storeId], map: "store_id")
+  @@map("store_imgs")
+}
+
+model Review {
+  reviewId      BigInt        @id @default(autoincrement()) @map("review_id")
+  storeId       BigInt        @map("store_id")
+  userId        BigInt        @map("user_id")
+  reviewText    String?       @map("review_text") @db.Text
+  score         Decimal?      @db.Decimal(2, 1)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt     DateTime      @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  reviewImgs    ReviewImg[]
+  reviewReplies ReviewReply[]
+  store         Store         @relation(fields: [storeId], references: [storeId], onDelete: Cascade, onUpdate: NoAction, map: "reviews_ibfk_1")
+  user          User          @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "reviews_ibfk_2")
+
+  @@index([score], map: "idx_reviews_score")
+  @@index([storeId], map: "store_id")
+  @@index([userId], map: "user_id")
+  @@map("reviews")
+}
+
+model ReviewImg {
+  reviewImgId BigInt @id @default(autoincrement()) @map("revicew_img_id")
+  reviewId    BigInt @map("review_id")
+  reviewImg   String @map("review_img") @db.VarChar(255)
+  review      Review @relation(fields: [reviewId], references: [reviewId], onDelete: Cascade, onUpdate: NoAction, map: "review_imgs_ibfk_1")
+
+  @@index([reviewId], map: "review_id")
+  @@map("review_imgs")
+}
+
+model ReviewReply {
+  replyId    BigInt                     @id @default(autoincrement()) @map("reply_id")
+  reviewId   BigInt                     @map("review_id")
+  replyText  String                     @map("reply_text") @db.Text
+  senderType review_replies_sender_type @map("sender_type")
+  createdAt  DateTime                   @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt  DateTime                   @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  review     Review                     @relation(fields: [reviewId], references: [reviewId], onDelete: Cascade, onUpdate: NoAction, map: "review_replies_ibfk_1")
+
+  @@index([reviewId], map: "review_id")
+  @@map("review_replies")
+}
+
+model Mission {
+  missionId    BigInt          @id @default(autoincrement()) @map("mission_id")
+  storeId      BigInt          @map("store_id")
+  region       missions_region
+  missionMoney BigInt          @map("mission_money")
+  missionPoint BigInt          @map("mission_point")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime        @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  store        Store           @relation(fields: [storeId], references: [storeId], onDelete: Cascade, onUpdate: NoAction, map: "missions_ibfk_1")
+  userMissions UserMission[]
+
+  @@index([region], map: "idx_missions_region")
+  @@index([storeId], map: "store_id")
+  @@map("missions")
+}
+
+model UserMission {
+  challengeMissionId BigInt               @id @default(autoincrement()) @map("challenge_mission_id")
+  userId             BigInt               @map("user_id")
+  missionId          BigInt               @map("mission_id")
+  storeId            BigInt               @map("store_id")
+  status             user_missions_status @default(IN_PROGRESS)
+  challengeAt        DateTime?            @map("challenge_at") @db.DateTime(0)
+  completedAt        DateTime?            @map("completed_at") @db.DateTime(0)
+  limitedAt          DateTime?            @map("limited_at") @db.DateTime(0)
+  successId          String?              @map("success_id") @db.VarChar(100)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  user               User                 @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "user_missions_ibfk_1")
+  mission            Mission              @relation(fields: [missionId], references: [missionId], onDelete: Cascade, onUpdate: NoAction, map: "user_missions_ibfk_2")
+  store              Store                @relation(fields: [storeId], references: [storeId], onDelete: Cascade, onUpdate: NoAction, map: "user_missions_ibfk_3")
+
+  @@index([status], map: "idx_user_missions_status")
+  @@index([missionId], map: "mission_id")
+  @@index([storeId], map: "store_id")
+  @@index([userId], map: "user_id")
+  @@map("user_missions")
+}
+
+model Inquiry {
+  inquiryId    BigInt                 @id @default(autoincrement()) @map("inquiry_id")
+  userId       BigInt                 @map("user_id")
+  inquiryTitle String                 @map("inquiry_title") @db.VarChar(100)
+  inquiryText  String                 @map("inquiry_text") @db.Text
+  inquiryType  inquiries_inquiry_type @map("inquiry_type")
+  createdAt    DateTime               @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt    DateTime               @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  user         User                   @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "inquiries_ibfk_1")
+  inquiryImgs  InquiryImg[]
+
+  @@index([userId], map: "user_id")
+  @@map("inquiries")
+}
+
+model InquiryImg {
+  inquiryImgId BigInt  @id @default(autoincrement()) @map("inquiry_img_id")
+  inquiryId    BigInt  @map("inquiry_id")
+  inquiryImg   String  @map("inquiry_img") @db.VarChar(255)
+  inquiry      Inquiry @relation(fields: [inquiryId], references: [inquiryId], onDelete: Cascade, onUpdate: NoAction, map: "inquiry_imgs_ibfk_1")
+
+  @@index([inquiryId], map: "inquiry_id")
+  @@map("inquiry_imgs")
+}
+
+model Notification {
+  notificationId   BigInt                          @id @default(autoincrement()) @map("notification_id")
+  userId           BigInt                          @map("user_id")
+  notificationType notifications_notification_type @map("notification_type")
+  title            String                          @db.VarChar(100)
+  content          String                          @db.Text
+  isRead           Boolean                         @default(false) @map("is_read")
+  createdAt        DateTime                        @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt        DateTime                        @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  user             User                            @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: NoAction, map: "notifications_ibfk_1")
+
+  @@index([notificationType], map: "idx_notifications_type")
+  @@index([userId, isRead], map: "idx_notifications_user_read")
+  @@map("notifications")
+}
+
+model NotificationAgreement {
+  agreementId        BigInt    @id @default(autoincrement()) @map("agreement_id")
+  is_service_agreed  Boolean   @default(false)
+  is_personal_agreed Boolean   @default(false)
+  is_location_agreed Boolean   @default(false)
+  is_alarm_agreed    Boolean   @default(false)
+  is_fourteen_agreed Boolean   @default(false)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.DateTime(0)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.DateTime(0)
+  notification       Agreement @relation(fields: [agreementId], references: [agreementId], onDelete: Cascade, onUpdate: NoAction, map: "notification_agreements_ibfk_1")
+
+  @@map("notification_agreements")
+}
+
+enum prefer_categories_name {
+  KOREAN
+  CHINESE
+  JAPANESE
+  WESTERN
+  CHICKEN
+  SNACK
+  MEAT
+  DOSIRAK
+  YASICK
+  DESSERT
+  FAST_FOOD
+  ASIAN
+  ETC
+}
+
+enum missions_region {
+  SEOUL
+  BUSAN
+  DAEGU
+  INCHEON
+  GWANGJU
+  DAEJEON
+  ULSAN
+  GYEONGGI
+  GANGWON
+  CHUNGBUK
+  CHUNGNAM
+  JEONBUK
+  JEONNAM
+  GYEONGBUK
+  GYEONGNAM
+  JEJU
+}
+
+enum notifications_notification_type {
+  MISSION_COMPLETED
+  MISSION_EXPIRED
+  REVIEW_REPLY
+  INQUIRY_ANSWER
+  POINT_EARNED
+  SYSTEM_NOTICE
+  EVENT_NOTIFICATION
+  ETC
+}
+
+enum users_gender {
+  NONE
+  MALE
+  FEMALE
+}
+
+enum review_replies_sender_type {
+  GENERAL
+  BOSS
+  ADMIN
+}
+
+enum stores_store_type {
+  KOREAN
+  CHINESE
+  JAPANESE
+  WESTERN
+  CHICKEN
+  SNACK
+  MEAT
+  DOSIRAK
+  YASICK
+  DESSERT
+  FAST_FOOD
+  ASIAN
+  ETC
+}
+
+enum inquiries_inquiry_type {
+  GENERAL
+  TECHNICAL
+  BUG_REPORT
+  FEATURE_REQUEST
+  ETC
+}
+
+enum user_missions_status {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+enum users_social_type {
+  KAKAO
+  NAVER
+  APPLE
+  GOOGLE
+}
+
+enum users_user_status {
+  ACTIVE
+  INACTIVE
+  WITHDRAWAL
+}
+
+enum users_user_type {
+  GENERAL
+  BOSS
+  ADMIN
+}
