@@ -13,13 +13,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Prisma 폴더가 변경되었는지 감지하는 단계 
+      - name: Check prisma has changes
+        uses: dorny/paths-filter@v3
+        id: paths-filter
+        with:
+          filters: |
+            prisma: ["prisma/**"]
+
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
           echo "$EC2_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # 접속 별명 설정
+         
           cat >>~/.ssh/config <<END
           Host umc9thworkbook
             HostName $EC2_HOST
@@ -40,7 +48,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          ssh umc9thworkbook 'npm install --prefix /opt/app/'
+          ssh umc9thworkbook 'cd /opt/app; npm install'
+          ssh umc9thworkbook 'cd /opt/app; npx prisma generate'
+
+      - name: Apply prisma migrations
+        if: steps.paths-filter.outputs.prisma == 'true'
+        run: |
+          ssh umc9thworkbook 'cd /opt/app; npx prisma migrate deploy'
 
       - name: Copy systemd service file
         run: |
@@ -50,8 +64,8 @@ jobs:
             After=network.target
 
             [Service]
-            User=ubuntu
-            ExecStart=/usr/bin/npm run dev --prefix /opt/app/
+            User=${USER}
+            ExecStart=/usr/bin/npm run start --prefix /opt/app/
             Restart=always
 
             [Install]
