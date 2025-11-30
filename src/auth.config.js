@@ -70,7 +70,7 @@ export const googleStrategy = new GoogleStrategy(
   {
     clientID: process.env.PASSPORT_GOOGLE_CLIENT_ID,
     clientSecret: process.env.PASSPORT_GOOGLE_CLIENT_SECRET,
-    callbackURL: "/oauth2/callback/google",
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://umc-9th.p-e.kr:3000/oauth2/callback/google",
     scope: ["email", "profile"],
   },
   async (accessToken, refreshToken, profile, cb) => {
